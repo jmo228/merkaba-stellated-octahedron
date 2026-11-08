@@ -4,7 +4,7 @@
   "project": {
     "name": "Merkaba — Stellated Octahedron LED Sculpture",
     "repo": "jmo228/merkaba-stellated-octahedron",
-    "version": "1.1-beta"
+    "version": "1.2"
   },
 
   "geometry": {
@@ -95,6 +95,22 @@
     "ipRating": "IP65"
   },
 
+  "globeHead": {
+    "_note": "One RGBWUV DMX head inside a perforated frosted globe at every hub (14). Channel layout, watts and mass are assumptions until the real head is chosen; the visualizer, wiring planner, power estimate and BOM all read them from here.",
+    "type": "RGBWUV DMX LED head in a perforated frosted globe",
+    "perHub": 1,
+    "count": 14,
+    "channels": ["dimmer", "red", "green", "blue", "white", "uv", "strobe", "macro"],
+    "channelsAssumed": true,
+    "watts": 15,
+    "wattsAssumed": true,
+    "massKg": 0.5,
+    "massAssumed": true,
+    "globeDiameterMm": { "tip": 160, "middle": 200 },
+    "holes": 32,
+    "holeDiameterMm": 12
+  },
+
   "hub": {
     "centreToTubeEndMm": 60,
     "massKg": 0.35,
@@ -110,9 +126,12 @@
   },
 
   "power": {
+    "_note": "One 24 V supply per tie point (winch), mounted at the ceiling beside its winch. Its 12 AWG feed runs down the winch line to that tie point's two middle hubs. Each tube and head is assumed to draw from the supply of the tie point whose node feeds its universe (power travels with the chain).",
     "supplyVolts": 24,
     "supplyAmps": 20,
-    "continuousLoadPct": 80
+    "continuousLoadPct": 80,
+    "suppliesPerTiePoint": 1,
+    "feedCable": { "gauge": "12 AWG", "ohmsPerMetre": 0.00521, "lengthM": 6, "perTiePoint": 1 }
   },
 
   "dmx": {
@@ -120,8 +139,16 @@
     "channelsPerUniverse": 512,
     "firstAddress": 1,
     "allowTubeAcrossUniverses": false,
-    "virtualPairs": [["TA1", "TB1"], ["TA2", "TB2"], ["TA3", "TB3"], ["TA4", "TB4"]],
-    "_virtualPairsNote": "Used only by the wiring planner: the 8 tips have an odd number of tubes, so the daisy-chain runs must start and end at tips. These pairings decide which tips are joined when the planner builds the runs."
+    "headPlacement": "inChain",
+    "_headPlacementNote": "inChain: each globe head sits in the tube chain where the chain passes its hub (tip heads last in their run, before the terminator). ownUniverse: all 14 heads on one universe of their own, and the tube universes carry tubes only.",
+    "_plannerNote": "Every universe starts at a tie-point (middle) hub and runs outward to a tip. The planner tries many ways to split the 36 tubes into such runs (seeded, so the result is repeatable) and keeps the one with the fewest node outputs over capacity, then fewest universes, jumpers and supply load.",
+    "plannerSeed": 1,
+    "plannerTries": 4000,
+    "nodes": {
+      "type": "Art-Net / sACN node, 2 DMX outputs",
+      "perTiePoint": 1,
+      "outputs": 2
+    }
   },
 
   "rig": {
@@ -136,6 +163,7 @@
       { "id": "W2", "hubs": ["M+Y", "M-Z"] },
       { "id": "W3", "hubs": ["M+Z", "M-X"] }
     ],
+    "_tiePointNote": "Each winch is a tie point. Its two middle hubs carry the bridle, and the tie point also holds that point's DMX node and power supply feed.",
     "_note": "Each winch line ends in a two-leg bridle clipped to one upper-ring and one lower-ring middle hub. The bridle ring sits bridleRiseM above the midpoint of its two hubs. Winch anchors are on the ceiling directly above the bridle rings when the sculpture is level."
   },
 
@@ -145,6 +173,10 @@
     "Tube mass: 0.6 kg per metre. Hub mass: 0.35 kg each. Weigh real parts before rigging.",
     "Hub clearance: 60 mm from hub centre to the end of each tube.",
     "Each tube takes a single DMX start address and one universe; a tube is never split across universes.",
+    "Globe heads: 8 channels (dimmer, R, G, B, W, UV, strobe, macro), 15 W and 0.5 kg each including the globe. Placeholders until the real head is chosen.",
+    "Globe heads have DMX in and out, so they can sit in the tube chain; each one needs a short XLR patch lead.",
+    "Power travels with the DMX chain: each tube and head draws from the supply at the tie point that feeds its universe.",
+    "Supply feed: 12 AWG pair, about 6 m from each ceiling supply down the winch line to its two hubs.",
     "Room: 4.5 m ceiling. At that height the 1.5 m version (about 4 m tip to tip) has almost no clearance — measure the real room."
   ]
 }

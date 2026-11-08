@@ -50,7 +50,8 @@
         <div class="seg" id="g-where" style="margin-top:8px">
           <button class="btn" data-where="tips">8 star tips</button><button class="btn" data-where="all">All 14 hubs</button>
         </div>
-        <div class="field"><label for="g-size">Globe size</label><input type="range" id="g-size" min="100" max="250" step="5" value="160"><output id="g-size-o"></output></div>
+        <div class="field"><label for="g-size-tip">Tip globes</label><input type="range" id="g-size-tip" min="100" max="250" step="5"><output id="g-size-tip-o"></output></div>
+        <div class="field"><label for="g-size-mid">Middle globes</label><input type="range" id="g-size-mid" min="100" max="250" step="5"><output id="g-size-mid-o"></output></div>
         <div class="seg" id="g-mode" style="margin-top:8px">
           <button class="btn" data-mode="follow">Follow LEDs</button><button class="btn" data-mode="solid">Solid</button><button class="btn" data-mode="white">White</button>
         </div>
@@ -59,17 +60,17 @@
         <div class="field"><label for="g-uv">UV</label><input type="range" id="g-uv" min="0" max="1" step="0.01" value="0"><output id="g-uv-o"></output></div>
         <h4 style="margin:14px 0 4px">Perforations</h4>
         <label class="small muted"><input type="checkbox" id="b-on" checked> Beams through the holes</label>
-        <div class="field"><label for="h-n">Holes per globe</label><input type="range" id="h-n" min="0" max="96" step="1" value="32"><output id="h-n-o"></output></div>
-        <div class="field"><label for="h-mm">Hole size</label><input type="range" id="h-mm" min="4" max="30" step="1" value="12"><output id="h-mm-o"></output></div>
+        <div class="field"><label for="h-n">Holes per globe</label><input type="range" id="h-n" min="0" max="96" step="1"><output id="h-n-o"></output></div>
+        <div class="field"><label for="h-mm">Hole size</label><input type="range" id="h-mm" min="4" max="30" step="1"><output id="h-mm-o"></output></div>
         <div class="field"><label for="b-len">Beam length</label><input type="range" id="b-len" min="0.5" max="8" step="0.1" value="3"><output id="b-len-o"></output></div>
         <div class="field"><label for="fog">Fog / haze</label><input type="range" id="fog" min="0" max="1" step="0.01" value="0.5"><output id="fog-o"></output></div>
         <p class="small muted" id="h-info" style="margin:4px 0 0"></p>
-        <p class="small muted" style="margin:8px 0 0">Prototype only: the heads aren't in the DMX map or power estimate yet.</p>
+        <p class="small muted" id="head-info" style="margin:8px 0 0"></p>
       </div>
 
       <div class="card">
         <h3>Power estimate</h3>
-        <dl class="kv"><dt>Now</dt><dd id="p-now">–</dd><dt>Supply (continuous)</dt><dd id="p-cap">–</dd></dl>
+        <dl class="kv"><dt>Now (tubes + heads)</dt><dd id="p-now">–</dd><dt>Busiest supply</dt><dd id="p-worst">–</dd><dt>Supplies</dt><dd id="p-cap">–</dd></dl>
         <div class="meter" id="p-meter"><i></i></div>
         <p class="small muted" id="p-hint" style="margin:8px 0 0"></p>
       </div>
@@ -145,11 +146,16 @@
   bindRange('g-w', v => fx({ white: v }), v => fmt.pct(v));
   bindRange('g-uv', v => fx({ uv: v }), v => fmt.pct(v));
   $('b-on').addEventListener('change', e => fx({ beams: e.target.checked }));
-  const holeInfo = () => { $('h-info').textContent = viewer.fixtureCount
-    ? `${viewer.holesPerGlobe} holes per globe (tube ports kept clear) · each beam spreads about ${viewer.beamDeg.toFixed(1)}°` : ''; };
+  const gh = data.globeHead;
+  $('g-size-tip').value = gh.globeDiameterMm.tip; $('g-size-mid').value = gh.globeDiameterMm.middle;
+  $('h-n').value = gh.holes; $('h-mm').value = gh.holeDiameterMm;
+  const holeInfo = () => { const d = viewer.beamDeg; $('h-info').textContent = viewer.fixtureCount
+    ? `${viewer.holesPerGlobe} holes per globe (tube ports kept clear) · beams spread about ${d.tip.toFixed(1)}° (tips), ${d.middle.toFixed(1)}° (middle hubs)` : ''; };
+  $('head-info').textContent = `Each head is ${gh.channels.length} DMX channels (${gh.channels.join(', ')}), ${gh.watts} W, in the address map on the Wiring page. Channel layout and watts are placeholders until the real head is chosen.`;
   bindRange('h-n', v => { fx({ holes: v }); holeInfo(); }, v => `${v}`);
   bindRange('h-mm', v => { fx({ holeMm: v }); holeInfo(); }, v => `${v} mm`);
-  bindRange('g-size', v => { fx({ globeMm: v }); holeInfo(); }, v => `${v} mm`);
+  bindRange('g-size-tip', v => { fx({ globeMmTip: v }); holeInfo(); }, v => `${v} mm`);
+  bindRange('g-size-mid', v => { fx({ globeMmMid: v }); holeInfo(); }, v => `${v} mm`);
   bindRange('b-len', v => fx({ beamLengthM: v }), v => fmt.m(v));
   bindRange('fog', v => fx({ fog: v }), v => v < 0.05 ? 'None' : fmt.pct(v));
   pick('g-where', 'where', 'all', v => fx({ where: v }));
@@ -177,7 +183,7 @@
       ['Hub to hub', fmt.m(d.edgeCentreToCentreM)], ['Pixels', m.dmx.totalPixels],
       ['DMX universes', m.dmx.universeCount], ['Est. weight', fmt.kg(m.mass.totalKg)],
     ].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
-    $('p-cap').textContent = fmt.w(m.power.usableW);
+    $('p-cap').textContent = `${m.power.supplyCount} × ${data.power.supplyVolts} V ${data.power.supplyAmps} A (${fmt.a(m.power.supplyUsableW / data.power.supplyVolts)} continuous each)`;
     holeInfo();
     updatePose();
   }
@@ -201,23 +207,30 @@
 
   // frame loop
   let powerTick = 0;
-  viewer.onFrame((t, dt, out) => {
+  viewer.onFrame((t, dt, out, heads) => {
     const m = state.model;
     const a = state.effect === 'audio' ? audio.read(t) : null;
     if (a) $('lvl').style.width = `${Math.round(a.level * 100)}%`;
-    const info = EFFECTS[state.effect].run({ t, speed: state.speed, px: m.pixels, out, model: m, shapeColors: state.shapeColors, audio: a });
+    const info = EFFECTS[state.effect].run({ t, speed: state.speed, px: m.pixels, out, model: m, shapeColors: state.shapeColors, audio: a, heads });
     if (info) { $('ov-info').hidden = false; $('ov-info').textContent = info; }
     if ((powerTick += dt) > 0.25) {
       powerTick = 0;
-      let s = 0; for (let i = 0; i < out.length; i++) s += out[i];
-      const watts = s / 3 * m.power.perPixelW * state.brightness;
-      const frac = watts / m.power.usableW;
-      $('p-now').textContent = `${fmt.w(watts)} · ${fmt.a(watts / data.power.supplyVolts)}`;
+      // each pixel and head draws from the supply at the tie point that feeds its universe
+      const perTie = m.tiePoints.map(() => 0);
+      for (let i = 0; i < m.pixels.length; i++) perTie[m.pixels[i].tie] += (out[i * 3] + out[i * 3 + 1] + out[i * 3 + 2]) / 3 * m.power.perPixelW * state.brightness;
+      m.heads.forEach((h, i) => { perTie[h.tie] += viewer.headLoad(i) * m.power.perHeadW; });
+      const watts = perTie.reduce((s, v) => s + v, 0);
+      const k = perTie.indexOf(Math.max(...perTie));
+      const frac = perTie[k] / m.power.supplyUsableW;
+      const V = data.power.supplyVolts;
+      $('p-now').textContent = `${fmt.w(watts)} · ${fmt.a(watts / V)}`;
+      $('p-worst').textContent = `${m.tiePoints[k].supply} (${m.tiePoints[k].id}) ${fmt.a(perTie[k] / V)} · ${fmt.pct(perTie[k] / m.power.supplyW)} of rating`;
       $('p-meter').className = `meter${frac > 1 ? ' bad' : frac > 0.85 ? ' warn' : ''}`;
       $('p-meter').firstElementChild.style.width = `${Math.min(100, frac * 100)}%`;
+      const busy = m.tiePoints.reduce((a, b) => (b.loadW > a.loadW ? b : a));
       $('p-hint').textContent = m.power.ok
-        ? `Full white on these tubes is ${fmt.w(m.power.fullWhiteW)}, within the supply.`
-        : `Full white on these tubes is ${fmt.w(m.power.fullWhiteW)}. Keep brightness at or below ${fmt.pct(m.power.maxBrightness)} for full white on one ${data.power.supplyVolts} V ${data.power.supplyAmps} A supply.`;
+        ? `Full white with heads is ${fmt.w(m.power.fullWhiteW)}. The busiest supply (${busy.supply}) would carry ${fmt.a(busy.loadA)}, within its ${data.power.continuousLoadPct}% continuous limit. The bar shows the busiest supply now against that limit.`
+        : `Full white with heads is ${fmt.w(m.power.fullWhiteW)}, and ${busy.supply} would carry ${fmt.a(busy.loadA)}, over its ${data.power.continuousLoadPct}% continuous limit. Keep brightness at or below ${fmt.pct(m.power.maxBrightness)}.`;
     }
   });
 

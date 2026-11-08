@@ -24,7 +24,7 @@
     const ms = data.variants.map(v => buildModel(data, v.id));
     const row = (label, f, cls = 'num') => `<tr><td>${label}</td>${ms.map(m => `<td class="${cls}">${f(m)}</td>`).join('')}</tr>`;
     const head = `<thead><tr><th></th>${ms.map(m => `<th class="num">${esc(m.variant.label)}</th>`).join('')}</tr></thead>`;
-    const t = data.tube, h = data.hub, o = data.order, p = data.power;
+    const t = data.tube, h = data.hub, o = data.order, p = data.power, gh = data.globeHead;
     const tips = ms[0].hubs.filter(x => x.type === 'tip').length, mids = ms[0].hubs.length - tips;
     const byShape = s => data.geometry.tubes.filter(x => x.shape === s).length;
 
@@ -41,21 +41,37 @@
       ${row('Pixels per tube', m => m.variant.pixelsPerTube)}
       ${row('Total pixels', m => m.dmx.totalPixels.toLocaleString())}
       ${row('DMX channels', m => m.dmx.totalChannels.toLocaleString())}
-      ${row('DMX universes', m => m.dmx.universeCount)}
-      ${row('Est. weight (tubes + hubs)', m => fmt.kg(m.mass.totalKg))}
+      ${row('DMX universes (tubes + heads)', m => m.dmx.universeCount)}
+      ${row(`Node outputs needed (${ms[0].dmx.outputsAvailable} available)`, m => m.dmx.outputsShort ? `<span class="pill bad">${m.dmx.universeCount}</span>` : m.dmx.universeCount)}
+      ${row('XLR jumpers', m => m.dmx.jumpers.length)}
+      ${row('Est. weight (tubes + hubs + heads)', m => fmt.kg(m.mass.totalKg))}
     </tbody></table></div>
     <p class="small muted">Height and width are measured hub centre to hub centre with tetrahedron A pointing up. Add about half a hub to each side for the outside size.</p>
 
     <h2>Power budget</h2>
     <div class="table-wrap"><table>${head}<tbody>
       ${row('Per tube, full white', m => fmt.w(m.power.perTubeW))}
-      ${row('Whole sculpture, full white', m => fmt.w(m.power.fullWhiteW))}
+      ${row(`Tubes, full white (${o.tubesInSculpture})`, m => fmt.w(m.power.tubesW))}
+      ${row(`Globe heads (${gh.count} × ${gh.watts} W)`, m => fmt.w(m.power.headsW))}
+      ${row('<strong>Whole sculpture, full white</strong>', m => `<strong>${fmt.w(m.power.fullWhiteW)}</strong>`)}
       ${row('Current at 24 V', m => fmt.a(m.power.fullWhiteA))}
-      ${row(`Supply: ${p.supplyVolts} V × ${p.supplyAmps} A (${p.continuousLoadPct}% continuous)`, m => fmt.w(m.power.usableW))}
-      ${row('Headroom', m => `<span class="pill ${m.power.ok ? 'good' : 'bad'}">${m.power.ok ? '+' : ''}${fmt.w(m.power.usableW - m.power.fullWhiteW)}</span>`)}
+      ${row(`Supplies: ${ms[0].power.supplyCount} × ${p.supplyVolts} V ${p.supplyAmps} A, one per tie point (${p.continuousLoadPct}% continuous)`, m => fmt.w(m.power.usableW))}
+      ${row('Busiest supply at full white', m => { const b = m.tiePoints.reduce((x, y) => (y.loadW > x.loadW ? y : x)); return `<span class="pill ${b.over ? 'bad' : b.loadPct > 0.7 ? 'warn' : 'good'}">${b.supply} ${fmt.a(b.loadA)} · ${fmt.pct(b.loadPct)}</span>`; })}
       ${row('Max brightness for full white', m => fmt.pct(m.power.maxBrightness))}
     </tbody></table></div>
-    <p class="note" style="margin-top:12px">Full white is the worst case. Colour effects usually draw a third to a half of it. For the larger tubes, either cap brightness in the controller or add a second supply. With many tubes on one chain, inject power at several hubs to limit voltage drop.</p>
+    <p class="note" style="margin-top:12px">Full white is the worst case. Colour effects usually draw a third to a half of it. Each tie point has its own supply, and each tube and head draws from the supply at the tie point that feeds its universe. The planner balances the load. The Wiring page shows each supply's load and the voltage drop on its ${esc(p.feedCable.gauge)} feed.</p>
+
+    <h2>Globe heads</h2>
+    <div class="table-wrap"><table><tbody>
+      <tr><td>Type</td><td>${esc(gh.type)}</td></tr>
+      <tr><td>Count</td><td>${gh.count} (one per hub)</td></tr>
+      <tr><td>DMX channels</td><td>${gh.channels.length}: ${gh.channels.map(esc).join(', ')}${gh.channelsAssumed ? ' <span class="pill warn">assumed</span>' : ''}</td></tr>
+      <tr><td>Power</td><td>${gh.watts} W each${gh.wattsAssumed ? ' <span class="pill warn">assumed</span>' : ''}</td></tr>
+      <tr><td>Mass</td><td>${gh.massKg} kg each, with globe${gh.massAssumed ? ' <span class="pill warn">assumed</span>' : ''}</td></tr>
+      <tr><td>Globe diameter</td><td>${gh.globeDiameterMm.tip} mm on the tips, ${gh.globeDiameterMm.middle} mm on the middle hubs</td></tr>
+      <tr><td>Perforations</td><td>${gh.holes} holes of ${gh.holeDiameterMm} mm per globe (tube ports kept clear)</td></tr>
+      <tr><td>DMX placement</td><td>${data.dmx.headPlacement === 'ownUniverse' ? 'All heads on a universe of their own' : 'In the tube chain, where the chain passes each hub'}</td></tr>
+    </tbody></table></div>
 
     <h2>Tube</h2>
     <div class="table-wrap"><table><tbody>
@@ -76,7 +92,8 @@
       <tr><td>Tube input</td><td>${esc(t.connectorIn)}</td><td>On a ${t.leadLengthMm} mm lead</td></tr>
       <tr><td>Tube output</td><td>${esc(t.connectorOut)}</td><td>On a ${t.leadLengthMm} mm lead. Plugs into the next tube at the same hub.</td></tr>
       <tr><td>Chain end</td><td>DMX terminator (120 Ω)</td><td>On the last tube of each universe</td></tr>
-      <tr><td>Controller feed</td><td>5-pin XLR from the DMX interface</td><td>One feed per universe</td></tr>
+      <tr><td>Universe feed</td><td>5-pin XLR from a node output</td><td>One per universe, from the ${esc(data.dmx.nodes.type)} at the tie point where the universe starts</td></tr>
+      <tr><td>Globe head</td><td>DMX in / out, short patch lead</td><td>Patched into the chain at its hub</td></tr>
     </tbody></table></div>
     <p class="small muted">${esc(t.connectorNote)}</p>
 
