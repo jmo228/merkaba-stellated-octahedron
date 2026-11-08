@@ -4,7 +4,7 @@
   "project": {
     "name": "Merkaba — Stellated Octahedron LED Sculpture",
     "repo": "jmo228/merkaba-stellated-octahedron",
-    "version": "1.0"
+    "version": "1.1-beta"
   },
 
   "geometry": {

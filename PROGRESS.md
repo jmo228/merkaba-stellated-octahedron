@@ -5,6 +5,7 @@
 ### Versions (git tags; run `git checkout <tag>` to go back to any of them)
 | Tag | What it is |
 |---|---|
+| v1.1-beta | Perforated RGBWUV hub globes on the visualizer (beams in fog); not yet in DMX map or power estimate |
 | v1.0 | First prototype: static website (6 pages, 3D visualizer), shared geometry/spec data, spec sheets, controller placeholder |
 
 ### Live pieces
@@ -23,10 +24,29 @@
    ```
 
 ### To do next
+- Hub globe heads (14, RGBWUV): add to the DMX address map and power estimate; replan universes to start at the tie-point hubs; one supply and one 2-universe Art-Net/sACN node per tie point; separate globe sizes for tips and middle hubs.
 - Turn on GitHub Pages (steps above).
 - Confirm with the supplier: pixels per tube, watts per metre, XLR pinout, how the DMX address is set.
 - Choose the tube size (0.5 / 1 / 1.5 m), and measure the real ceiling height.
 - Start the stand-alone `controller/controller.py` (DMX output).
+
+---
+
+## VERSION 1.1-beta (2026-11-08): perforated hub globes
+
+**What's in it**
+- New `docs/js/fixtures.js`: a frosted snap-on globe around each ball joint, lit by an RGBWUV DMX head inside.
+  - Holes spread evenly over the shell (tube ports kept clear) throw beams straight out from the centre. Beam spread = 2 × atan(hole radius / globe radius): a 12 mm hole in a 160 mm globe ≈ 8.6°.
+  - Colour: follow the LEDs next to the hub, solid, or white; plus White and UV levels (UV shown as violet).
+  - Fog/haze control: beams barely show with no fog and glow in thick fog.
+- Visualizer page: new **Hub globes** card (8 tips or all 14 hubs, globe size, colour, W, UV, holes per globe, hole size, beam length, fog).
+- Home page render shows globes on the 8 tips.
+
+**Not yet**
+- Heads are visual only: not in the DMX address map, wiring page, BOM or power estimate.
+
+**Tested**
+- Syntax check on all changed scripts; globe/hole/beam logic run against all three tube sizes (8 and 14 globes, 0–96 holes, every colour mode). Rendered preview checked in chat; check the live page after pushing.
 
 ---
 
