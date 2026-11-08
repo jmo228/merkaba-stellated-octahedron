@@ -6,6 +6,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { createFixtures } from './fixtures.js';
 
 const UP = new THREE.Vector3(0, 1, 0);
 const OFF_LEVEL = 0.03; // unlit diffuser still shows faintly
@@ -42,6 +43,7 @@ export function createViewer(container, opts = {}) {
   const fixture = new THREE.Group();
   scene.add(fixture);
   const rigGroup = new THREE.Group();
+  const fixtures = createFixtures(fixture);
   if (rig) scene.add(rigGroup);
 
   let model = null, pixelMesh = null, hubMesh = null, colors = null;
@@ -80,6 +82,7 @@ export function createViewer(container, opts = {}) {
     hubMesh = new THREE.InstancedMesh(hubGeo, hubMat, m.hubs.length);
     m.hubs.forEach((h, i) => hubMesh.setMatrixAt(i, mtx.makeTranslation(...h.world)));
     fixture.add(hubMesh);
+    fixtures.setModel(m);
 
     if (rig) buildRig();
     frameCamera();
@@ -159,6 +162,7 @@ export function createViewer(container, opts = {}) {
     const dst = pixelMesh.instanceColor.array;
     for (let i = 0; i < colors.length; i++) dst[i] = Math.max(OFF_LEVEL, colors[i] * brightness);
     pixelMesh.instanceColor.needsUpdate = true;
+    fixtures.update(colors, brightness);
   }
 
   function resize() {
@@ -188,6 +192,8 @@ export function createViewer(container, opts = {}) {
     setBrightness: v => { brightness = v; },
     setBloom: on => { if (bloomPass) bloomPass.enabled = on; },
     onFrame: fn => { onFrame = fn; },
+    setFixtures: o => fixtures.set(o),
+    get fixtureCount() { return fixtures.count; },
     get colors() { return colors; },
     dispose: () => { running = false; renderer.dispose(); },
   };
