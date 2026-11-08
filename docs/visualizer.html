@@ -152,7 +152,7 @@
   bindRange('g-size', v => { fx({ globeMm: v }); holeInfo(); }, v => `${v} mm`);
   bindRange('b-len', v => fx({ beamLengthM: v }), v => fmt.m(v));
   bindRange('fog', v => fx({ fog: v }), v => v < 0.05 ? 'None' : fmt.pct(v));
-  pick('g-where', 'where', 'tips', v => fx({ where: v }));
+  pick('g-where', 'where', 'all', v => fx({ where: v }));
   pick('g-mode', 'mode', 'follow', v => fx({ colorMode: v }));
   holeInfo();
 

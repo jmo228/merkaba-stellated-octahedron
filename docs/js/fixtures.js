@@ -107,7 +107,7 @@ export function createFixtures(parent) {
   beamGeo.translate(0, 0.5, 0);
 
   const settings = {
-    globes: true, where: 'tips', globeMm: 160,
+    globes: true, where: 'all', globeMm: 160,
     colorMode: 'follow', color: [1, 1, 1],
     holes: 32, holeMm: 12, beams: true, beamLengthM: 3, fog: 0.5, white: 0, uv: 0,
   };
