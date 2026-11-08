@@ -45,7 +45,7 @@
 
       <div class="card">
         <h3>Hub globes</h3>
-        <p class="small muted" style="margin:0 0 8px">Frosted snap-on diffuser around each ball joint, lit by a DMX head inside.</p>
+        <p class="small muted" style="margin:0 0 8px">Frosted, perforated snap-on globe around each ball joint, lit by an RGBWUV DMX head inside. The holes throw beams that show up in fog.</p>
         <label class="small muted"><input type="checkbox" id="g-on" checked> Show globes</label>
         <div class="seg" id="g-where" style="margin-top:8px">
           <button class="btn" data-where="tips">8 star tips</button><button class="btn" data-where="all">All 14 hubs</button>
@@ -55,12 +55,15 @@
           <button class="btn" data-mode="follow">Follow LEDs</button><button class="btn" data-mode="solid">Solid</button><button class="btn" data-mode="white">White</button>
         </div>
         <div class="field" id="g-color-row" hidden><label for="g-color">Colour</label><input type="color" id="g-color" value="#ffb347"><span></span></div>
-        <label class="small muted" style="display:block;margin-top:10px"><input type="checkbox" id="b-on"> Beams out of each globe</label>
-        <div id="beam-box" hidden>
-          <div class="field"><label for="b-len">Beam length</label><input type="range" id="b-len" min="1" max="8" step="0.1" value="4"><output id="b-len-o"></output></div>
-          <div class="field"><label for="b-spread">Beam spread</label><input type="range" id="b-spread" min="2" max="25" step="0.5" value="8"><output id="b-spread-o"></output></div>
-          <div class="field"><label for="b-int">Beam haze</label><input type="range" id="b-int" min="0.05" max="1" step="0.01" value="0.45"><output id="b-int-o"></output></div>
-        </div>
+        <div class="field"><label for="g-w">White</label><input type="range" id="g-w" min="0" max="1" step="0.01" value="0"><output id="g-w-o"></output></div>
+        <div class="field"><label for="g-uv">UV</label><input type="range" id="g-uv" min="0" max="1" step="0.01" value="0"><output id="g-uv-o"></output></div>
+        <h4 style="margin:14px 0 4px">Perforations</h4>
+        <label class="small muted"><input type="checkbox" id="b-on" checked> Beams through the holes</label>
+        <div class="field"><label for="h-n">Holes per globe</label><input type="range" id="h-n" min="0" max="96" step="1" value="32"><output id="h-n-o"></output></div>
+        <div class="field"><label for="h-mm">Hole size</label><input type="range" id="h-mm" min="4" max="30" step="1" value="12"><output id="h-mm-o"></output></div>
+        <div class="field"><label for="b-len">Beam length</label><input type="range" id="b-len" min="0.5" max="8" step="0.1" value="3"><output id="b-len-o"></output></div>
+        <div class="field"><label for="fog">Fog / haze</label><input type="range" id="fog" min="0" max="1" step="0.01" value="0.5"><output id="fog-o"></output></div>
+        <p class="small muted" id="h-info" style="margin:4px 0 0"></p>
         <p class="small muted" style="margin:8px 0 0">Prototype only: the heads aren't in the DMX map or power estimate yet.</p>
       </div>
 
@@ -139,13 +142,19 @@
   $('g-mode').addEventListener('click', e => { const b = e.target.closest('[data-mode]'); if (b) pick('g-mode', 'mode', b.dataset.mode, v => { fx({ colorMode: v }); $('g-color-row').hidden = v !== 'solid'; }); });
   $('g-color').addEventListener('input', e => fx({ color: hexToRgb(e.target.value) }));
   fx({ color: hexToRgb($('g-color').value) });
-  bindRange('g-size', v => fx({ globeMm: v }), v => `${v} mm`);
-  $('b-on').addEventListener('change', e => { fx({ beams: e.target.checked }); $('beam-box').hidden = !e.target.checked; });
+  bindRange('g-w', v => fx({ white: v }), v => fmt.pct(v));
+  bindRange('g-uv', v => fx({ uv: v }), v => fmt.pct(v));
+  $('b-on').addEventListener('change', e => fx({ beams: e.target.checked }));
+  const holeInfo = () => { $('h-info').textContent = viewer.fixtureCount
+    ? `${viewer.holesPerGlobe} holes per globe (tube ports kept clear) · each beam spreads about ${viewer.beamDeg.toFixed(1)}°` : ''; };
+  bindRange('h-n', v => { fx({ holes: v }); holeInfo(); }, v => `${v}`);
+  bindRange('h-mm', v => { fx({ holeMm: v }); holeInfo(); }, v => `${v} mm`);
+  bindRange('g-size', v => { fx({ globeMm: v }); holeInfo(); }, v => `${v} mm`);
   bindRange('b-len', v => fx({ beamLengthM: v }), v => fmt.m(v));
-  bindRange('b-spread', v => fx({ beamSpreadDeg: v }), v => `${v}°`);
-  bindRange('b-int', v => fx({ beamIntensity: v }), v => fmt.pct(v));
+  bindRange('fog', v => fx({ fog: v }), v => v < 0.05 ? 'None' : fmt.pct(v));
   pick('g-where', 'where', 'tips', v => fx({ where: v }));
   pick('g-mode', 'mode', 'follow', v => fx({ colorMode: v }));
+  holeInfo();
 
   // mic
   $('mic').addEventListener('click', async () => {
@@ -169,6 +178,7 @@
       ['DMX universes', m.dmx.universeCount], ['Est. weight', fmt.kg(m.mass.totalKg)],
     ].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
     $('p-cap').textContent = fmt.w(m.power.usableW);
+    holeInfo();
     updatePose();
   }
   $('variants').addEventListener('click', e => { const b = e.target.closest('[data-v]'); if (b) setVariant(b.dataset.v); });

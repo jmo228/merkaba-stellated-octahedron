@@ -194,6 +194,8 @@ export function createViewer(container, opts = {}) {
     onFrame: fn => { onFrame = fn; },
     setFixtures: o => fixtures.set(o),
     get fixtureCount() { return fixtures.count; },
+    get holesPerGlobe() { return fixtures.holesPerGlobe; },
+    get beamDeg() { return fixtures.beamDeg; },
     get colors() { return colors; },
     dispose: () => { running = false; renderer.dispose(); },
   };
