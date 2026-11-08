@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Merkaba Specs</title>
+<meta name="description" content="Size variants, tube spec, connectors, power budget and hub count for the Merkaba LED sculpture.">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<main>
+  <h1>Specs</h1>
+  <p class="lead">Every number on this page is worked out from <code>docs/data/merkaba.json</code>, the same file the visualizer and wiring pages use.</p>
+  <div id="out"><p class="loading">Loading…</p></div>
+</main>
+<script type="module">
+  import { loadData, buildModel, fmt } from './js/model.js';
+  import { setRepoLinks, showError, esc } from './js/site.js';
+
+  const out = document.getElementById('out');
+  try {
+    const data = await loadData();
+    setRepoLinks(data);
+    const ms = data.variants.map(v => buildModel(data, v.id));
+    const row = (label, f, cls = 'num') => `<tr><td>${label}</td>${ms.map(m => `<td class="${cls}">${f(m)}</td>`).join('')}</tr>`;
+    const head = `<thead><tr><th></th>${ms.map(m => `<th class="num">${esc(m.variant.label)}</th>`).join('')}</tr></thead>`;
+    const t = data.tube, h = data.hub, o = data.order, p = data.power;
+    const tips = ms[0].hubs.filter(x => x.type === 'tip').length, mids = ms[0].hubs.length - tips;
+    const byShape = s => data.geometry.tubes.filter(x => x.shape === s).length;
+
+    out.innerHTML = `
+    <h2>Size variants</h2>
+    <div class="table-wrap"><table>${head}<tbody>
+      ${row('Tube length', m => fmt.m(m.dims.tubeLengthM))}
+      ${row('Hub centre to hub centre', m => fmt.m(m.dims.edgeCentreToCentreM))}
+      ${row('Full tetrahedron edge (2 tubes)', m => fmt.m(m.dims.tetraEdgeM))}
+      ${row('Bounding cube side', m => fmt.m(m.dims.boundingCubeM))}
+      ${row('<strong>Tip-to-tip height (hung)</strong>', m => `<strong>${fmt.m(m.dims.heightM)}</strong>`)}
+      ${row('<strong>Overall width (hung)</strong>', m => `<strong>${fmt.m(m.dims.widthM)}</strong>`)}
+      ${row('Total tube length', m => fmt.m(m.dims.totalTubeLengthM))}
+      ${row('Pixels per tube', m => m.variant.pixelsPerTube)}
+      ${row('Total pixels', m => m.dmx.totalPixels.toLocaleString())}
+      ${row('DMX channels', m => m.dmx.totalChannels.toLocaleString())}
+      ${row('DMX universes', m => m.dmx.universeCount)}
+      ${row('Est. weight (tubes + hubs)', m => fmt.kg(m.mass.totalKg))}
+    </tbody></table></div>
+    <p class="small muted">Height and width are measured hub centre to hub centre with tetrahedron A pointing up. Add about half a hub to each side for the outside size.</p>
+
+    <h2>Power budget</h2>
+    <div class="table-wrap"><table>${head}<tbody>
+      ${row('Per tube, full white', m => fmt.w(m.power.perTubeW))}
+      ${row('Whole sculpture, full white', m => fmt.w(m.power.fullWhiteW))}
+      ${row('Current at 24 V', m => fmt.a(m.power.fullWhiteA))}
+      ${row(`Supply: ${p.supplyVolts} V × ${p.supplyAmps} A (${p.continuousLoadPct}% continuous)`, m => fmt.w(m.power.usableW))}
+      ${row('Headroom', m => `<span class="pill ${m.power.ok ? 'good' : 'bad'}">${m.power.ok ? '+' : ''}${fmt.w(m.power.usableW - m.power.fullWhiteW)}</span>`)}
+      ${row('Max brightness for full white', m => fmt.pct(m.power.maxBrightness))}
+    </tbody></table></div>
+    <p class="note" style="margin-top:12px">Full white is the worst case. Colour effects usually draw a third to a half of it. For the larger tubes, either cap brightness in the controller or add a second supply. With many tubes on one chain, inject power at several hubs to limit voltage drop.</p>
+
+    <h2>Tube</h2>
+    <div class="table-wrap"><table><tbody>
+      <tr><td>Model</td><td>${esc(t.model)}</td></tr>
+      <tr><td>Type</td><td>${esc(t.type)}</td></tr>
+      <tr><td>Diameter</td><td>${t.diameterMm} mm</td></tr>
+      <tr><td>LEDs</td><td>${esc(t.ledType)}</td></tr>
+      <tr><td>Supply voltage</td><td>${t.voltageV} V DC</td></tr>
+      <tr><td>Protocol</td><td>${esc(t.protocol)}</td></tr>
+      <tr><td>Power</td><td>${t.wattsPerMetreFullWhite} W/m at full white</td></tr>
+      <tr><td>Mass</td><td>${t.massKgPerMetre} kg/m</td></tr>
+      <tr><td>Ingress rating</td><td>${esc(t.ipRating)}</td></tr>
+      <tr><td>Sizes</td><td>${data.variants.map(v => `${v.tubeLengthM} m (${v.pixelsPerTube} px)`).join(' · ')}</td></tr>
+    </tbody></table></div>
+
+    <h2>Connectors</h2>
+    <div class="table-wrap"><table><thead><tr><th>Where</th><th>Connector</th><th>Notes</th></tr></thead><tbody>
+      <tr><td>Tube input</td><td>${esc(t.connectorIn)}</td><td>On a ${t.leadLengthMm} mm lead</td></tr>
+      <tr><td>Tube output</td><td>${esc(t.connectorOut)}</td><td>On a ${t.leadLengthMm} mm lead. Plugs into the next tube at the same hub.</td></tr>
+      <tr><td>Chain end</td><td>DMX terminator (120 Ω)</td><td>On the last tube of each universe</td></tr>
+      <tr><td>Controller feed</td><td>5-pin XLR from the DMX interface</td><td>One feed per universe</td></tr>
+    </tbody></table></div>
+    <p class="small muted">${esc(t.connectorNote)}</p>
+
+    <h2>Hubs and tubes</h2>
+    <div class="table-wrap"><table><thead><tr><th>Part</th><th class="num">Count</th><th>Notes</th></tr></thead><tbody>
+      <tr><td>Tip hubs</td><td class="num">${tips}</td><td>${h.tipValence} tubes each — the 8 points of the star</td></tr>
+      <tr><td>Middle hubs</td><td class="num">${mids}</td><td>${h.middleValence} tubes each (4 tetrahedron + 4 octahedron). They also carry the winch bridles.</td></tr>
+      <tr><td><strong>Total hubs</strong></td><td class="num"><strong>${o.hubs}</strong></td><td></td></tr>
+      <tr><td>Tetrahedron A tubes</td><td class="num">${byShape('A')}</td><td>6 edges, each split in two at a middle hub</td></tr>
+      <tr><td>Tetrahedron B tubes</td><td class="num">${byShape('B')}</td><td>6 edges, each split in two at a middle hub</td></tr>
+      <tr><td>Octahedron tubes</td><td class="num">${byShape('O')}</td><td>Join the 6 middle hubs</td></tr>
+      <tr><td><strong>Tubes in sculpture</strong></td><td class="num"><strong>${o.tubesInSculpture}</strong></td><td></td></tr>
+      <tr><td>Tubes ordered</td><td class="num">${o.tubesOrdered}</td><td>${o.spares} spares</td></tr>
+    </tbody></table></div>
+
+    <h2>Assumptions to confirm</h2>
+    <ul>${data.assumptions.map(a => `<li>${esc(a)}</li>`).join('')}</ul>`;
+  } catch (e) { showError(out, e); }
+</script>
+</body>
+</html>

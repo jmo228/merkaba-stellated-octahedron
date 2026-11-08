@@ -1,0 +1,150 @@
+{
+  "_readme": "Single source of truth for geometry and spec numbers. The visualizer, specs page and wiring/DMX page all read this file. Values marked in 'assumptions' are estimates until confirmed with the supplier or by measurement.",
+
+  "project": {
+    "name": "Merkaba — Stellated Octahedron LED Sculpture",
+    "repo": "OWNER/merkaba-stellated-octahedron",
+    "version": "0.1.0"
+  },
+
+  "geometry": {
+    "_note": "Hub positions are in 'cube units': the 8 tips are the corners of a cube from -1 to +1, the 6 middle hubs are the cube's face centres. One edge tube spans sqrt(2) cube units. The sculpture hangs with the [1,1,1] axis vertical, so tetrahedron A points up and tetrahedron B points down.",
+    "upAxis": [1, 1, 1],
+    "shapes": {
+      "A": { "name": "Tetrahedron A (points up)", "color": "#ff9a3c" },
+      "B": { "name": "Tetrahedron B (points down)", "color": "#3cc8ff" },
+      "O": { "name": "Inner octahedron", "color": "#c86bff" }
+    },
+    "hubs": [
+      { "id": "TA1", "type": "tip", "shape": "A", "pos": [1, 1, 1], "label": "Top tip (A)" },
+      { "id": "TA2", "type": "tip", "shape": "A", "pos": [1, -1, -1], "label": "A lower tip 2" },
+      { "id": "TA3", "type": "tip", "shape": "A", "pos": [-1, 1, -1], "label": "A lower tip 3" },
+      { "id": "TA4", "type": "tip", "shape": "A", "pos": [-1, -1, 1], "label": "A lower tip 4" },
+      { "id": "TB1", "type": "tip", "shape": "B", "pos": [-1, -1, -1], "label": "Bottom tip (B)" },
+      { "id": "TB2", "type": "tip", "shape": "B", "pos": [-1, 1, 1], "label": "B upper tip 2" },
+      { "id": "TB3", "type": "tip", "shape": "B", "pos": [1, -1, 1], "label": "B upper tip 3" },
+      { "id": "TB4", "type": "tip", "shape": "B", "pos": [1, 1, -1], "label": "B upper tip 4" },
+      { "id": "M+X", "type": "middle", "shape": "O", "pos": [1, 0, 0], "label": "Middle hub, upper ring" },
+      { "id": "M+Y", "type": "middle", "shape": "O", "pos": [0, 1, 0], "label": "Middle hub, upper ring" },
+      { "id": "M+Z", "type": "middle", "shape": "O", "pos": [0, 0, 1], "label": "Middle hub, upper ring" },
+      { "id": "M-X", "type": "middle", "shape": "O", "pos": [-1, 0, 0], "label": "Middle hub, lower ring" },
+      { "id": "M-Y", "type": "middle", "shape": "O", "pos": [0, -1, 0], "label": "Middle hub, lower ring" },
+      { "id": "M-Z", "type": "middle", "shape": "O", "pos": [0, 0, -1], "label": "Middle hub, lower ring" }
+    ],
+    "tubes": [
+      { "id": "A01", "shape": "A", "from": "TA1", "to": "M+X" },
+      { "id": "A02", "shape": "A", "from": "M+X", "to": "TA2" },
+      { "id": "A03", "shape": "A", "from": "TA1", "to": "M+Y" },
+      { "id": "A04", "shape": "A", "from": "M+Y", "to": "TA3" },
+      { "id": "A05", "shape": "A", "from": "TA1", "to": "M+Z" },
+      { "id": "A06", "shape": "A", "from": "M+Z", "to": "TA4" },
+      { "id": "A07", "shape": "A", "from": "TA2", "to": "M-Z" },
+      { "id": "A08", "shape": "A", "from": "M-Z", "to": "TA3" },
+      { "id": "A09", "shape": "A", "from": "TA2", "to": "M-Y" },
+      { "id": "A10", "shape": "A", "from": "M-Y", "to": "TA4" },
+      { "id": "A11", "shape": "A", "from": "TA3", "to": "M-X" },
+      { "id": "A12", "shape": "A", "from": "M-X", "to": "TA4" },
+      { "id": "B01", "shape": "B", "from": "TB1", "to": "M-X" },
+      { "id": "B02", "shape": "B", "from": "M-X", "to": "TB2" },
+      { "id": "B03", "shape": "B", "from": "TB1", "to": "M-Y" },
+      { "id": "B04", "shape": "B", "from": "M-Y", "to": "TB3" },
+      { "id": "B05", "shape": "B", "from": "TB1", "to": "M-Z" },
+      { "id": "B06", "shape": "B", "from": "M-Z", "to": "TB4" },
+      { "id": "B07", "shape": "B", "from": "TB2", "to": "M+Z" },
+      { "id": "B08", "shape": "B", "from": "M+Z", "to": "TB3" },
+      { "id": "B09", "shape": "B", "from": "TB2", "to": "M+Y" },
+      { "id": "B10", "shape": "B", "from": "M+Y", "to": "TB4" },
+      { "id": "B11", "shape": "B", "from": "TB3", "to": "M+X" },
+      { "id": "B12", "shape": "B", "from": "M+X", "to": "TB4" },
+      { "id": "O01", "shape": "O", "from": "M+X", "to": "M+Y" },
+      { "id": "O02", "shape": "O", "from": "M+X", "to": "M-Y" },
+      { "id": "O03", "shape": "O", "from": "M+X", "to": "M+Z" },
+      { "id": "O04", "shape": "O", "from": "M+X", "to": "M-Z" },
+      { "id": "O05", "shape": "O", "from": "M-X", "to": "M+Y" },
+      { "id": "O06", "shape": "O", "from": "M-X", "to": "M-Y" },
+      { "id": "O07", "shape": "O", "from": "M-X", "to": "M+Z" },
+      { "id": "O08", "shape": "O", "from": "M-X", "to": "M-Z" },
+      { "id": "O09", "shape": "O", "from": "M+Y", "to": "M+Z" },
+      { "id": "O10", "shape": "O", "from": "M+Y", "to": "M-Z" },
+      { "id": "O11", "shape": "O", "from": "M-Y", "to": "M+Z" },
+      { "id": "O12", "shape": "O", "from": "M-Y", "to": "M-Z" }
+    ]
+  },
+
+  "variants": [
+    { "id": "0.5", "label": "0.5 m tubes", "tubeLengthM": 0.5, "pixelsPerTube": 10 },
+    { "id": "1.0", "label": "1 m tubes",   "tubeLengthM": 1.0, "pixelsPerTube": 20 },
+    { "id": "1.5", "label": "1.5 m tubes", "tubeLengthM": 1.5, "pixelsPerTube": 30 }
+  ],
+  "defaultVariant": "1.0",
+
+  "tube": {
+    "model": "HTD-T40-20IC-5050RGB (style)",
+    "type": "DMX512 digital pixel tube",
+    "diameterMm": 40,
+    "ledType": "5050 RGB SMD",
+    "voltageV": 24,
+    "protocol": "DMX512 (RS-485), 3 channels per pixel (R, G, B)",
+    "colorOrder": "RGB",
+    "leadLengthMm": 150,
+    "connectorIn": "5-pin DMX XLR (male)",
+    "connectorOut": "5-pin DMX XLR (female)",
+    "connectorNote": "Each tube lead carries DMX data plus 24 V power through the same multi-core lead — confirm the pinout with the supplier before making any jumpers.",
+    "wattsPerMetreFullWhite": 15,
+    "massKgPerMetre": 0.6,
+    "ipRating": "IP65"
+  },
+
+  "hub": {
+    "centreToTubeEndMm": 60,
+    "massKg": 0.35,
+    "tipValence": 3,
+    "middleValence": 8
+  },
+
+  "order": {
+    "tubesInSculpture": 36,
+    "tubesOrdered": 40,
+    "spares": 4,
+    "hubs": 14
+  },
+
+  "power": {
+    "supplyVolts": 24,
+    "supplyAmps": 20,
+    "continuousLoadPct": 80
+  },
+
+  "dmx": {
+    "channelsPerPixel": 3,
+    "channelsPerUniverse": 512,
+    "firstAddress": 1,
+    "allowTubeAcrossUniverses": false,
+    "virtualPairs": [["TA1", "TB1"], ["TA2", "TB2"], ["TA3", "TB3"], ["TA4", "TB4"]],
+    "_virtualPairsNote": "Used only by the wiring planner: the 8 tips have an odd number of tubes, so the daisy-chain runs must start and end at tips. These pairings decide which tips are joined when the planner builds the runs."
+  },
+
+  "rig": {
+    "ceilingHeightM": 4.5,
+    "centreHeightMinM": 1.6,
+    "centreHeightMaxM": 3.2,
+    "centreHeightDefaultM": 2.4,
+    "maxTiltDeg": 25,
+    "bridleRiseM": 0.35,
+    "winches": [
+      { "id": "W1", "hubs": ["M+X", "M-Y"] },
+      { "id": "W2", "hubs": ["M+Y", "M-Z"] },
+      { "id": "W3", "hubs": ["M+Z", "M-X"] }
+    ],
+    "_note": "Each winch line ends in a two-leg bridle clipped to one upper-ring and one lower-ring middle hub. The bridle ring sits bridleRiseM above the midpoint of its two hubs. Winch anchors are on the ceiling directly above the bridle rings when the sculpture is level."
+  },
+
+  "assumptions": [
+    "Pixels per tube: 20 per metre (10 / 20 / 30 for the 0.5 / 1 / 1.5 m tubes). The '20IC' in the part number may mean 20 ICs per tube instead — confirm with the supplier.",
+    "Power: 15 W per metre at full white. Confirm from the supplier's data sheet.",
+    "Tube mass: 0.6 kg per metre. Hub mass: 0.35 kg each. Weigh real parts before rigging.",
+    "Hub clearance: 60 mm from hub centre to the end of each tube.",
+    "Each tube takes a single DMX start address and one universe; a tube is never split across universes.",
+    "Room: 4.5 m ceiling. At that height the 1.5 m version (about 4 m tip to tip) has almost no clearance — measure the real room."
+  ]
+}

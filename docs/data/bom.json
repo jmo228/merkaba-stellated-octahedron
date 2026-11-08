@@ -1,0 +1,22 @@
+{
+  "_readme": "Bill of materials shown on bom.html. Edit freely and send a pull request. status: needed | quoted | ordered | received. unitCost is an estimate in USD (null = unknown).",
+  "currency": "USD",
+  "items": [
+    { "category": "Light", "item": "DMX512 pixel tube, HTD-T40-20IC-5050RGB style (size TBD: 0.5 / 1 / 1.5 m)", "qty": 40, "unit": "pcs", "unitCost": null, "status": "ordered", "notes": "36 used + 4 spares" },
+    { "category": "Light", "item": "DMX terminator, 5-pin XLR, 120 Ω", "qty": 8, "unit": "pcs", "unitCost": 6, "status": "needed", "notes": "One per universe plus spares" },
+    { "category": "Light", "item": "5-pin XLR DMX jumper, 0.5 m", "qty": 10, "unit": "pcs", "unitCost": 8, "status": "needed", "notes": "Where the chain can't reach the next tube on its own leads (see Wiring page)" },
+    { "category": "Control", "item": "Multi-universe DMX interface (Art-Net / sACN node, or USB DMX)", "qty": 1, "unit": "pcs", "unitCost": 180, "status": "needed", "notes": "Needs as many outputs as the Wiring page lists universes" },
+    { "category": "Control", "item": "5-pin XLR feed cable, controller to sculpture", "qty": 8, "unit": "pcs", "unitCost": 20, "status": "needed", "notes": "One per universe; length depends on hanging height" },
+    { "category": "Control", "item": "PC running the Merkaba controller", "qty": 1, "unit": "pcs", "unitCost": 0, "status": "received", "notes": "Existing PC" },
+    { "category": "Power", "item": "24 V 20 A power supply (480 W)", "qty": 1, "unit": "pcs", "unitCost": 70, "status": "needed", "notes": "Check the Specs power budget — larger tubes may need two" },
+    { "category": "Power", "item": "Power injection cable, 2-core 14 AWG", "qty": 15, "unit": "m", "unitCost": 2, "status": "needed", "notes": "Feed 24 V into several hubs to limit voltage drop" },
+    { "category": "Power", "item": "Inline fuse holders + fuses", "qty": 4, "unit": "pcs", "unitCost": 5, "status": "needed", "notes": "One per power injection branch" },
+    { "category": "Structure", "item": "Tip hub, 3-way", "qty": 8, "unit": "pcs", "unitCost": null, "status": "needed", "notes": "Design TBD — 3D print or machined" },
+    { "category": "Structure", "item": "Middle hub, 8-way with bridle eye", "qty": 6, "unit": "pcs", "unitCost": null, "status": "needed", "notes": "Carries the load; needs a rated lifting point" },
+    { "category": "Rigging", "item": "Motorised winch (rated for the sculpture weight with safety factor)", "qty": 3, "unit": "pcs", "unitCost": null, "status": "needed", "notes": "Ideally with limit switches and a brake" },
+    { "category": "Rigging", "item": "Steel wire rope + ferrules", "qty": 20, "unit": "m", "unitCost": 1.5, "status": "needed", "notes": "Winch lines and bridle legs" },
+    { "category": "Rigging", "item": "Bridle ring / master link", "qty": 3, "unit": "pcs", "unitCost": 8, "status": "needed", "notes": "One per winch" },
+    { "category": "Rigging", "item": "Rated shackles / carabiners", "qty": 9, "unit": "pcs", "unitCost": 6, "status": "needed", "notes": "3 per winch" },
+    { "category": "Rigging", "item": "Secondary safety cable", "qty": 3, "unit": "pcs", "unitCost": 12, "status": "needed", "notes": "Independent of the winch lines" }
+  ]
+}

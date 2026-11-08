@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Merkaba Wiring and DMX</title>
+<meta name="description" content="Hub and tube runs, DMX universes and the address map for the Merkaba LED sculpture.">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<main>
+  <h1>Wiring &amp; DMX</h1>
+  <p class="lead">The daisy-chain runs and the DMX address map below are worked out from the hub and tube list in <code>docs/data/merkaba.json</code>. They change with the tube size, because longer tubes have more pixels and fit fewer per universe.</p>
+  <div class="seg" id="variants" style="margin-bottom:16px"></div>
+  <div id="out"><p class="loading">Loading…</p></div>
+</main>
+<script type="module">
+  import { loadData, buildModel, savedVariant, saveVariant } from './js/model.js';
+  import { setRepoLinks, showError, esc } from './js/site.js';
+
+  const UCOL = ['#ff6b6b', '#ffb547', '#f5e663', '#3ddc97', '#3cc8ff', '#7b8cff', '#c86bff', '#ff7ac8', '#9ad0c2', '#d0a67a'];
+  const out = document.getElementById('out');
+  let data;
+  try { data = await loadData(); } catch (e) { showError(out, e); throw e; }
+  setRepoLinks(data);
+
+  const vEl = document.getElementById('variants');
+  vEl.innerHTML = data.variants.map(v => `<button class="btn" data-v="${v.id}">${v.label}</button>`).join('');
+  vEl.addEventListener('click', e => { const b = e.target.closest('[data-v]'); if (b) render(b.dataset.v); });
+
+  function project(p) {
+    const yaw = 0, pitch = -0.62; // chosen to keep hubs clear of unrelated tubes
+    const x1 = p[0] * Math.cos(yaw) - p[2] * Math.sin(yaw);
+    const z1 = p[0] * Math.sin(yaw) + p[2] * Math.cos(yaw);
+    const y2 = p[1] * Math.cos(pitch) - z1 * Math.sin(pitch);
+    const z2 = p[1] * Math.sin(pitch) + z1 * Math.cos(pitch);
+    return [x1, -y2, z2];
+  }
+
+  function diagram(m) {
+    const pts = Object.fromEntries(m.hubs.map(h => [h.id, project(h.world.map(v => v / m.dims.edgeCentreToCentreM))]));
+    const xs = Object.values(pts).map(p => p[0]), ys = Object.values(pts).map(p => p[1]);
+    const pad = 0.35, minX = Math.min(...xs) - pad, minY = Math.min(...ys) - pad;
+    const W = Math.max(...xs) + pad - minX, H = Math.max(...ys) + pad - minY;
+    const S = 260, X = p => ((p[0] - minX) * S).toFixed(1), Y = p => ((p[1] - minY) * S).toFixed(1);
+    // draw far tubes first
+    const segs = m.chain.map(c => ({ c, a: pts[c.from], b: pts[c.to], depth: (pts[c.from][2] + pts[c.to][2]) / 2 }))
+      .sort((p, q) => q.depth - p.depth);
+    const lines = segs.map(({ c, a, b }) => {
+      const col = UCOL[(c.universe - 1) % UCOL.length];
+      const mx = a[0] + (b[0] - a[0]) * 0.55, my = a[1] + (b[1] - a[1]) * 0.55;
+      const ang = Math.atan2(b[1] - a[1], b[0] - a[0]) * 180 / Math.PI;
+      const tube = m.tubes[c.tubeIndex];
+      return `<g><title>${tube.id}: universe ${c.universe}, #${c.position}, ${c.from} → ${c.to}, ch ${c.startAddress}–${c.endAddress}</title>
+        <line x1="${X(a)}" y1="${Y(a)}" x2="${X(b)}" y2="${Y(b)}" stroke="${col}" stroke-width="5" stroke-linecap="round" opacity=".9"/>
+        <path d="M-7,-5 L5,0 L-7,5 Z" fill="${col}" stroke="#04060a" stroke-width="1" transform="translate(${X([mx, my])},${Y([mx, my])}) rotate(${ang.toFixed(1)})"/>
+        <text x="${X([a[0] + (b[0] - a[0]) * 0.35, 0])}" y="${(Y([0, a[1] + (b[1] - a[1]) * 0.35]) - 7)}" font-size="11" fill="#c9d3e8" text-anchor="middle" paint-order="stroke" stroke="#121826" stroke-width="3">${c.universe}.${c.position}</text></g>`;
+    }).join('');
+    const hubs = m.hubs.map(h => {
+      const p = pts[h.id];
+      const fill = h.type === 'tip' ? (h.shape === 'A' ? 'var(--shape-a)' : 'var(--shape-b)') : 'var(--shape-o)';
+      return `<g><circle cx="${X(p)}" cy="${Y(p)}" r="${h.type === 'tip' ? 9 : 11}" fill="#0d111b" stroke="${fill}" stroke-width="2.5"/>
+        <text x="${X(p)}" y="${(+Y(p) + (h.type === 'tip' ? 24 : 27)).toFixed(1)}" font-size="12" fill="${fill}" text-anchor="middle" font-weight="700" paint-order="stroke" stroke="#121826" stroke-width="3">${h.id}</text></g>`;
+    }).join('');
+    return `<svg class="diagram" viewBox="0 0 ${(W * S).toFixed(0)} ${(H * S).toFixed(0)}" role="img" aria-label="Wiring diagram of hubs and tubes coloured by DMX universe">${lines}${hubs}</svg>`;
+  }
+
+  function feedText(c) {
+    if (c.feed === 'controller') return `<span class="pill good">feed</span> controller output ${c.universe} → ${c.from}`;
+    if (c.feed === 'chain') return `<span class="muted">from previous tube at ${c.from}</span>`;
+    return `<span class="pill warn">jumper</span> ${c.prevHub} → ${c.from}`;
+  }
+
+  function render(id) {
+    saveVariant(id);
+    vEl.querySelectorAll('[data-v]').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === id));
+    const m = buildModel(data, id);
+    const jumpers = m.universes.reduce((s, u) => s + u.jumpers, 0);
+    out.innerHTML = `
+      <div class="grid" style="margin-bottom:18px">
+        <div class="card stat"><span class="v">${m.dmx.universeCount}</span><span class="k">DMX universes</span></div>
+        <div class="card stat"><span class="v">${m.dmx.channelsPerTube}</span><span class="k">channels per tube (${m.variant.pixelsPerTube} px × ${data.dmx.channelsPerPixel})</span></div>
+        <div class="card stat"><span class="v">${m.dmx.tubesPerUniverseMax}</span><span class="k">max tubes per universe</span></div>
+        <div class="card stat"><span class="v">${jumpers}</span><span class="k">XLR jumpers needed</span></div>
+      </div>
+      <div class="card">
+        ${diagram(m)}
+        <div class="legend">${m.universes.map(u => `<span><i style="background:${UCOL[(u.number - 1) % UCOL.length]}"></i>Universe ${u.number}</span>`).join('')}</div>
+        <p class="small muted" style="margin:10px 0 0">Seen from slightly above, tetrahedron A pointing up. Arrows show which way data flows along each tube (DMX in → out). Labels are <em>universe.position</em>. Hover a tube for details.</p>
+      </div>
+
+      <h2>How the runs are built</h2>
+      <p>Each tube plugs into the next one at the hub they share, using the tubes' own 150 mm leads. The 8 tips have 3 tubes each (an odd number), so a run must start or end at a tip. The planner joins tips in pairs, walks one continuous path through all 36 tubes, then cuts it into universes of equal size. A <span class="pill warn">jumper</span> means the next tube in the universe starts at a different hub, so it needs an XLR extension. Every universe starts with a <span class="pill good">feed</span> cable from the controller and ends with a 120 Ω terminator.</p>
+
+      <h2>Universes</h2>
+      <div class="table-wrap"><table><thead><tr><th>Universe</th><th class="num">Tubes</th><th class="num">Channels used</th><th>Feed enters at</th><th>Terminate at</th><th class="num">Jumpers</th></tr></thead><tbody>
+        ${m.universes.map(u => `<tr><td><span class="pill" style="color:${UCOL[(u.number - 1) % UCOL.length]}">U${u.number}</span></td>
+          <td class="num">${u.items.length}</td><td class="num">${u.channelsUsed} / ${data.dmx.channelsPerUniverse}</td>
+          <td>${u.items[0].from}</td><td>${u.items[u.items.length - 1].to}</td><td class="num">${u.jumpers}</td></tr>`).join('')}
+      </tbody></table></div>
+
+      <h2>Address map</h2>
+      <div class="table-wrap"><table><thead><tr><th>Univ.</th><th class="num">#</th><th>Tube</th><th>Shape</th><th>Data in → out</th><th class="num">Start ch</th><th class="num">End ch</th><th>Connection in</th></tr></thead><tbody>
+        ${m.chain.map(c => { const t = m.tubes[c.tubeIndex]; return `<tr>
+          <td>U${c.universe}</td><td class="num">${c.position}</td><td class="mono">${t.id}</td>
+          <td><span class="pill ${t.shape.toLowerCase()}">${t.shape === 'O' ? 'Octa' : 'Tetra ' + t.shape}</span></td>
+          <td class="mono">${c.from} → ${c.to}</td><td class="num">${c.startAddress}</td><td class="num">${c.endAddress}</td><td>${feedText(c)}</td></tr>`; }).join('')}
+      </tbody></table></div>
+
+      <h2>Hubs</h2>
+      <div class="table-wrap"><table><thead><tr><th>Hub</th><th>Type</th><th class="num">Tubes</th><th>Connected tubes</th><th>Winch</th></tr></thead><tbody>
+        ${m.hubs.map(h => { const w = data.rig.winches.find(w => w.hubs.includes(h.id)); return `<tr>
+          <td class="mono">${h.id}</td><td>${esc(h.label)}</td><td class="num">${h.tubes.length}</td>
+          <td class="mono small">${h.tubes.join(' ')}</td><td>${w ? w.id : ''}</td></tr>`; }).join('')}
+      </tbody></table></div>`;
+  }
+  render(savedVariant(data));
+</script>
+</body>
+</html>

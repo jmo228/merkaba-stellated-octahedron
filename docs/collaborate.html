@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Merkaba Collaborate</title>
+<meta name="description" content="How to help with the Merkaba LED sculpture: issues, roadmap and notes.">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<main>
+  <h1>Collaborate</h1>
+  <p class="lead">Ideas, corrections and help are welcome. Everything lives in the GitHub repository. The site rebuilds itself from the files there.</p>
+
+  <div class="grid">
+    <div class="card"><h3>Report or suggest</h3><p>Found a wrong number, have an effect idea or a hub design?</p>
+      <div class="row"><a class="btn primary" data-repo-link="/issues/new/choose" href="#">New issue</a><a class="btn" data-repo-link="/issues" href="#">All issues</a></div></div>
+    <div class="card"><h3>Change something</h3><p>Fork the repo, make a branch, edit, and open a pull request.</p>
+      <div class="row"><a class="btn" data-repo-link="/pulls" href="#">Pull requests</a><a class="btn" data-repo-link="" href="#">Repository</a></div></div>
+    <div class="card"><h3>Edit the data</h3><p>Most changes are just JSON edits, no code needed:</p>
+      <ul class="small" style="margin:0;padding-left:18px">
+        <li><a data-repo-link="/edit/main/docs/data/merkaba.json" href="#">merkaba.json</a> — geometry &amp; specs</li>
+        <li><a data-repo-link="/edit/main/docs/data/bom.json" href="#">bom.json</a> — bill of materials</li>
+        <li><a data-repo-link="/edit/main/docs/data/roadmap.json" href="#">roadmap.json</a> — to-do list</li>
+        <li><a data-repo-link="/edit/main/docs/data/notes.json" href="#">notes.json</a> — notes</li>
+      </ul></div>
+  </div>
+
+  <h2>Branch names</h2>
+  <div class="table-wrap"><table><thead><tr><th>Prefix</th><th>For</th><th>Example</th></tr></thead><tbody>
+    <tr><td class="mono">feature/</td><td>New pages, effects, controller features</td><td class="mono">feature/sparkle-effect</td></tr>
+    <tr><td class="mono">fix/</td><td>Bugs and wrong numbers</td><td class="mono">fix/power-budget-typo</td></tr>
+    <tr><td class="mono">data/</td><td>BOM, specs, roadmap or notes updates</td><td class="mono">data/bom-winch-quote</td></tr>
+    <tr><td class="mono">docs/</td><td>README and spec sheet text</td><td class="mono">docs/wiring-notes</td></tr>
+    <tr><td class="mono">hw/</td><td>Hub, rigging or wiring designs</td><td class="mono">hw/middle-hub-v1</td></tr>
+  </tbody></table></div>
+
+  <h2>Roadmap</h2>
+  <ul class="checklist" id="roadmap"><li class="loading">Loading…</li></ul>
+
+  <h2>Notes</h2>
+  <div class="card notes" id="notes"><p class="loading">Loading…</p></div>
+</main>
+<script type="module">
+  import { loadData, loadJSON } from './js/model.js';
+  import { setRepoLinks, showError, esc } from './js/site.js';
+
+  try {
+    const [data, road, notes] = await Promise.all([loadData(), loadJSON('roadmap.json'), loadJSON('notes.json')]);
+    setRepoLinks(data);
+    const cls = { done: 'good', doing: 'warn', todo: '' };
+    const order = { doing: 0, todo: 1, done: 2 };
+    document.getElementById('roadmap').innerHTML = [...road.items].sort((a, b) => order[a.status] - order[b.status])
+      .map(i => `<li><span class="pill ${cls[i.status] ?? ''}">${esc(i.status)}</span><span>${esc(i.title)} <span class="muted small">· ${esc(i.area)}</span></span></li>`).join('');
+    document.getElementById('notes').innerHTML = [...notes.notes].sort((a, b) => b.date.localeCompare(a.date))
+      .map(n => `<article><div class="small muted">${esc(n.date)} · ${esc(n.author)}</div><div>${esc(n.text)}</div></article>`).join('');
+  } catch (e) { showError(document.getElementById('roadmap'), e); }
+</script>
+</body>
+</html>

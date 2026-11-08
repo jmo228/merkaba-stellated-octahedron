@@ -1,0 +1,15 @@
+{
+  "_readme": "Roadmap shown on collaborate.html. status: done | doing | todo. Add items with a pull request.",
+  "items": [
+    { "title": "Prototype website with 3D visualizer", "status": "done", "area": "Site" },
+    { "title": "Choose tube size (0.5 / 1 / 1.5 m)", "status": "todo", "area": "Design" },
+    { "title": "Confirm pixels per tube, power per metre and the XLR pinout with the supplier", "status": "todo", "area": "Light" },
+    { "title": "Design and prototype tip hubs (3-way) and middle hubs (8-way with bridle eye)", "status": "todo", "area": "Structure" },
+    { "title": "Weigh a tube and a hub; update masses in merkaba.json", "status": "todo", "area": "Structure" },
+    { "title": "Choose a DMX interface with enough universes", "status": "todo", "area": "Control" },
+    { "title": "Stand-alone Merkaba controller.py (DMX output, effects, audio reactive)", "status": "todo", "area": "Control" },
+    { "title": "Pick winches, check ceiling load rating, plan safety cables", "status": "todo", "area": "Rigging" },
+    { "title": "Bench test: one universe of tubes on the bench with the address test effect", "status": "todo", "area": "Light" },
+    { "title": "First full assembly and hang", "status": "todo", "area": "Build" }
+  ]
+}

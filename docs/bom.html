@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Merkaba Bill of Materials</title>
+<meta name="description" content="Parts list for the Merkaba LED sculpture.">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<main>
+  <h1>Bill of Materials</h1>
+  <p class="lead">Loaded from <code>docs/data/bom.json</code>. To change a part, quantity or status,
+    <a data-repo-link="/edit/main/docs/data/bom.json" href="#">edit the file on GitHub</a> and open a pull request.</p>
+  <div class="row" style="margin-bottom:14px" id="filters"></div>
+  <div id="out"><p class="loading">Loading…</p></div>
+</main>
+<script type="module">
+  import { loadData, loadJSON } from './js/model.js';
+  import { setRepoLinks, showError, esc } from './js/site.js';
+
+  const out = document.getElementById('out');
+  try {
+    const [data, bom] = await Promise.all([loadData(), loadJSON('bom.json')]);
+    setRepoLinks(data);
+    const money = v => v == null ? '—' : v.toLocaleString(undefined, { style: 'currency', currency: bom.currency });
+    const statusCls = { needed: 'bad', quoted: 'warn', ordered: 'warn', received: 'good' };
+    const cats = ['All', ...new Set(bom.items.map(i => i.category))];
+    let filter = 'All';
+    const filters = document.getElementById('filters');
+    filters.innerHTML = cats.map(c => `<button class="btn" data-cat="${esc(c)}">${esc(c)}</button>`).join('');
+    filters.addEventListener('click', e => { const b = e.target.closest('[data-cat]'); if (b) { filter = b.dataset.cat; render(); } });
+
+    function render() {
+      filters.querySelectorAll('[data-cat]').forEach(b => b.setAttribute('aria-pressed', b.dataset.cat === filter));
+      const items = bom.items.filter(i => filter === 'All' || i.category === filter);
+      const known = items.filter(i => i.unitCost != null);
+      const total = known.reduce((s, i) => s + i.unitCost * i.qty, 0);
+      const unknown = items.length - known.length;
+      out.innerHTML = `<div class="table-wrap"><table>
+        <thead><tr><th>Category</th><th>Item</th><th class="num">Qty</th><th class="num">Unit cost</th><th class="num">Line</th><th>Status</th><th>Notes</th></tr></thead>
+        <tbody>${items.map(i => `<tr>
+          <td>${esc(i.category)}</td><td>${esc(i.item)}</td>
+          <td class="num">${i.qty} ${esc(i.unit)}</td>
+          <td class="num">${money(i.unitCost)}</td>
+          <td class="num">${i.unitCost == null ? '—' : money(i.unitCost * i.qty)}</td>
+          <td><span class="pill ${statusCls[i.status] || ''}">${esc(i.status)}</span></td>
+          <td class="muted">${esc(i.notes)}</td></tr>`).join('')}</tbody>
+        <tfoot><tr><td colspan="4">Estimated total${unknown ? ` (${unknown} item${unknown > 1 ? 's' : ''} not priced yet)` : ''}</td><td class="num">${money(total)}</td><td colspan="2"></td></tr></tfoot>
+      </table></div>`;
+    }
+    render();
+  } catch (e) { showError(out, e); }
+</script>
+</body>
+</html>

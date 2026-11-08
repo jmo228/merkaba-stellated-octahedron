@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Merkaba Visualizer</title>
+<meta name="description" content="Interactive 3D Merkaba: LED effects, tube sizes, winch height and tilt.">
+<link rel="stylesheet" href="css/style.css">
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<main>
+  <h1>Visualizer</h1>
+  <p class="muted">Drag to orbit, pinch or scroll to zoom. Every tube is drawn as its real LED pixels, in DMX address order.</p>
+  <div class="viz">
+    <div>
+      <div class="viz-stage" id="stage">
+        <div class="viz-overlay"><span class="pill" id="ov-effect"></span><span class="pill" id="ov-info" hidden></span></div>
+      </div>
+      <p class="note" id="strobe-note" hidden style="margin-top:12px">Photosensitivity warning: the strobe flashes rapidly (capped at 10 Hz). Skip it if flashing light affects you.</p>
+    </div>
+
+    <div class="panel">
+      <div class="card">
+        <h3>Effect</h3>
+        <div class="seg" id="effects"></div>
+        <div id="shape-colors" style="margin-top:10px">
+          <div class="field"><label for="c-A">Tetra A</label><input type="color" id="c-A"><span></span></div>
+          <div class="field"><label for="c-B">Tetra B</label><input type="color" id="c-B"><span></span></div>
+          <div class="field"><label for="c-O">Octahedron</label><input type="color" id="c-O"><span></span></div>
+        </div>
+        <div id="audio-box" hidden style="margin-top:10px">
+          <div class="row"><button class="btn" id="mic">Use microphone</button><span class="small muted" id="mic-status">Simulated beat</span></div>
+          <div class="meter"><i id="lvl"></i></div>
+        </div>
+        <div class="field"><label for="speed">Speed</label><input type="range" id="speed" min="0.1" max="3" step="0.05" value="1"><output id="speed-o"></output></div>
+        <div class="field"><label for="bright">Brightness</label><input type="range" id="bright" min="0" max="1" step="0.01" value="0.7"><output id="bright-o"></output></div>
+        <label class="small muted"><input type="checkbox" id="bloom" checked> Glow</label>
+      </div>
+
+      <div class="card">
+        <h3>Power estimate</h3>
+        <dl class="kv"><dt>Now</dt><dd id="p-now">–</dd><dt>Supply (continuous)</dt><dd id="p-cap">–</dd></dl>
+        <div class="meter" id="p-meter"><i></i></div>
+        <p class="small muted" id="p-hint" style="margin:8px 0 0"></p>
+      </div>
+
+      <div class="card">
+        <h3>Tube size</h3>
+        <div class="seg" id="variants"></div>
+        <dl class="kv" id="dims" style="margin-top:10px"></dl>
+      </div>
+
+      <div class="card">
+        <h3>Winches</h3>
+        <div class="field"><label for="height">Height</label><input type="range" id="height" step="0.01"><output id="height-o"></output></div>
+        <div class="field"><label for="tilt">Tilt</label><input type="range" id="tilt" min="0" step="0.5" value="0"><output id="tilt-o"></output></div>
+        <div class="field"><label for="tiltdir">Tilt toward</label><input type="range" id="tiltdir" min="0" max="359" step="1" value="0"><output id="tiltdir-o"></output></div>
+        <dl class="kv" id="cables" style="margin-top:8px"></dl>
+        <p class="small muted" style="margin:8px 0 0">Height = centre of the sculpture above the floor. Line lengths are from the ceiling winch to the bridle ring (rigid-bridle approximation).</p>
+      </div>
+    </div>
+  </div>
+</main>
+<script type="module">
+  import { loadData, buildModel, savedVariant, saveVariant, fmt } from './js/model.js';
+  import { setRepoLinks, showError } from './js/site.js';
+  import { createViewer } from './js/viewer.js';
+  import { EFFECTS, hexToRgb } from './js/effects.js';
+  import { AudioInput } from './js/audio.js';
+
+  const $ = id => document.getElementById(id);
+  let data;
+  try { data = await loadData(); } catch (e) { showError($('stage'), e); throw e; }
+  setRepoLinks(data);
+
+  const viewer = createViewer($('stage'), { rig: true });
+  const audio = new AudioInput();
+  const state = { effect: 'rainbow', speed: 1, brightness: 0.7, model: null,
+    shapeColors: Object.fromEntries(Object.entries(data.geometry.shapes).map(([k, s]) => [k, hexToRgb(s.color)])) };
+
+  // effect buttons
+  $('effects').innerHTML = Object.entries(EFFECTS).map(([k, e]) => `<button class="btn" data-fx="${k}">${e.label}</button>`).join('');
+  function setEffect(k) {
+    state.effect = k;
+    document.querySelectorAll('[data-fx]').forEach(b => b.setAttribute('aria-pressed', b.dataset.fx === k));
+    $('ov-effect').textContent = EFFECTS[k].label;
+    $('shape-colors').hidden = !(k === 'shapes' || k === 'audio');
+    $('audio-box').hidden = k !== 'audio';
+    $('strobe-note').hidden = !EFFECTS[k].flashing;
+    $('ov-info').hidden = true;
+  }
+  $('effects').addEventListener('click', e => { const b = e.target.closest('[data-fx]'); if (b) setEffect(b.dataset.fx); });
+
+  for (const k of ['A', 'B', 'O']) {
+    $(`c-${k}`).value = data.geometry.shapes[k].color;
+    $(`c-${k}`).addEventListener('input', e => { state.shapeColors[k] = hexToRgb(e.target.value); });
+  }
+
+  const bindRange = (id, fn, show) => { const el = $(id); const go = () => { fn(+el.value); $(`${id}-o`).textContent = show(+el.value); }; el.addEventListener('input', go); go(); };
+  bindRange('speed', v => state.speed = v, v => `${v.toFixed(2)}×`);
+  bindRange('bright', v => { state.brightness = v; viewer.setBrightness(v); }, v => fmt.pct(v));
+  $('bloom').addEventListener('change', e => viewer.setBloom(e.target.checked));
+
+  // mic
+  $('mic').addEventListener('click', async () => {
+    if (audio.mode === 'mic') { audio.stopMic(); $('mic').textContent = 'Use microphone'; $('mic-status').textContent = 'Simulated beat'; return; }
+    try { await audio.startMic(); $('mic').textContent = 'Stop microphone'; $('mic-status').textContent = 'Listening to mic'; }
+    catch (err) { $('mic-status').textContent = `Mic unavailable — simulated beat (${err.name === 'NotAllowedError' ? 'permission denied' : err.message})`; }
+  });
+
+  // variants
+  $('variants').innerHTML = data.variants.map(v => `<button class="btn" data-v="${v.id}">${v.label}</button>`).join('');
+  function setVariant(id) {
+    saveVariant(id);
+    const m = buildModel(data, id);
+    state.model = m;
+    document.querySelectorAll('[data-v]').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === id));
+    viewer.setModel(m);
+    const d = m.dims;
+    $('dims').innerHTML = [
+      ['Tip-to-tip height', fmt.m(d.heightM)], ['Overall width', fmt.m(d.widthM)],
+      ['Hub to hub', fmt.m(d.edgeCentreToCentreM)], ['Pixels', m.dmx.totalPixels],
+      ['DMX universes', m.dmx.universeCount], ['Est. weight', fmt.kg(m.mass.totalKg)],
+    ].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+    $('p-cap').textContent = fmt.w(m.power.usableW);
+    updatePose();
+  }
+  $('variants').addEventListener('click', e => { const b = e.target.closest('[data-v]'); if (b) setVariant(b.dataset.v); });
+
+  // winches
+  const r = data.rig;
+  Object.assign($('height'), { min: r.centreHeightMinM, max: r.centreHeightMaxM, value: r.centreHeightDefaultM });
+  $('tilt').max = r.maxTiltDeg;
+  function updatePose() {
+    const height = +$('height').value, tiltDeg = +$('tilt').value, tiltDirDeg = +$('tiltdir').value;
+    $('height-o').textContent = fmt.m(height); $('tilt-o').textContent = `${tiltDeg}°`; $('tiltdir-o').textContent = `${tiltDirDeg}°`;
+    const lines = viewer.setPose({ height, tiltDeg, tiltDirDeg });
+    const top = r.ceilingHeightM - lines.topY, floor = lines.bottomY;
+    const clr = v => v < 0.3 ? `<span class="pill bad">${fmt.m(v)}</span>` : fmt.m(v);
+    $('cables').innerHTML = lines.map(l => `<dt>${l.id} line</dt><dd>${fmt.m(l.lengthM)}</dd>`).join('') +
+      `<dt>Top hub to ceiling</dt><dd>${clr(top)}</dd><dt>Bottom tip to floor</dt><dd>${clr(floor)}</dd>` +
+      (state.model ? `<dt>Load per winch (approx.)</dt><dd>${fmt.kg(state.model.mass.perWinchKg)}</dd>` : '');
+  }
+  ['height', 'tilt', 'tiltdir'].forEach(id => $(id).addEventListener('input', updatePose));
+
+  // frame loop
+  let powerTick = 0;
+  viewer.onFrame((t, dt, out) => {
+    const m = state.model;
+    const a = state.effect === 'audio' ? audio.read(t) : null;
+    if (a) $('lvl').style.width = `${Math.round(a.level * 100)}%`;
+    const info = EFFECTS[state.effect].run({ t, speed: state.speed, px: m.pixels, out, model: m, shapeColors: state.shapeColors, audio: a });
+    if (info) { $('ov-info').hidden = false; $('ov-info').textContent = info; }
+    if ((powerTick += dt) > 0.25) {
+      powerTick = 0;
+      let s = 0; for (let i = 0; i < out.length; i++) s += out[i];
+      const watts = s / 3 * m.power.perPixelW * state.brightness;
+      const frac = watts / m.power.usableW;
+      $('p-now').textContent = `${fmt.w(watts)} · ${fmt.a(watts / data.power.supplyVolts)}`;
+      $('p-meter').className = `meter${frac > 1 ? ' bad' : frac > 0.85 ? ' warn' : ''}`;
+      $('p-meter').firstElementChild.style.width = `${Math.min(100, frac * 100)}%`;
+      $('p-hint').textContent = m.power.ok
+        ? `Full white on these tubes is ${fmt.w(m.power.fullWhiteW)}, within the supply.`
+        : `Full white on these tubes is ${fmt.w(m.power.fullWhiteW)}. Keep brightness at or below ${fmt.pct(m.power.maxBrightness)} for full white on one ${data.power.supplyVolts} V ${data.power.supplyAmps} A supply.`;
+    }
+  });
+
+  setEffect('rainbow');
+  setVariant(savedVariant(data));
+</script>
+<script type="module" src="js/site.js"></script>
+</body>
+</html>

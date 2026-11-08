@@ -1,0 +1,7 @@
+{
+  "_readme": "Notes shown on collaborate.html, newest first. Add one with a pull request: date (YYYY-MM-DD), author, text.",
+  "notes": [
+    { "date": "2026-11-08", "author": "Morgan", "text": "Prototype site is up. All geometry and spec numbers live in docs/data/merkaba.json, so change them there and every page follows. Several numbers (pixels per tube, watts per metre, weights) are still estimates — see the Specs page." },
+    { "date": "2026-11-08", "author": "Morgan", "text": "40 tubes ordered: 36 for the sculpture plus 4 spares." }
+  ]
+}
