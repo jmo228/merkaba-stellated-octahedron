@@ -42,7 +42,7 @@ export function renderChrome() {
   const footer = document.createElement('footer');
   footer.className = 'site-footer';
   footer.innerHTML = `<div class="inner">
-    <span>Merkaba stellated-octahedron LED sculpture — prototype site</span>
+    <span>Merkaba stellated-octahedron LED sculpture — prototype site <span id="footer-version"></span></span>
     <span>Numbers come from <code>docs/data/merkaba.json</code></span>
     <a id="footer-repo" href="#">GitHub repo</a>
   </div>`;
@@ -51,6 +51,8 @@ export function renderChrome() {
 
 export function setRepoLinks(data) {
   const url = repoUrl(data);
+  const ver = document.getElementById('footer-version');
+  if (ver && data?.project?.version) ver.textContent = `v${data.project.version}`;
   document.querySelectorAll('#footer-repo, [data-repo-link]').forEach(a => {
     const path = a.getAttribute('data-repo-link') || '';
     a.href = url + path;
