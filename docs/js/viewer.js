@@ -158,11 +158,11 @@ export function createViewer(container, opts = {}) {
 
   // effects write linear 0..1 RGB into colors (DMX pixel order); brightness scales it
   let brightness = 1;
-  function pushColors() {
+  function pushColors(t) {
     const dst = pixelMesh.instanceColor.array;
     for (let i = 0; i < colors.length; i++) dst[i] = Math.max(OFF_LEVEL, colors[i] * brightness);
     pixelMesh.instanceColor.needsUpdate = true;
-    fixtures.update(colors, brightness);
+    fixtures.update(colors, brightness, t);
   }
 
   function resize() {
@@ -181,7 +181,12 @@ export function createViewer(container, opts = {}) {
     if (!running) return;
     requestAnimationFrame(loop);
     const dt = Math.min(0.1, (now - last) / 1000); last = now;
-    if (model && onFrame) { onFrame((now - t0) / 1000, dt, colors); pushColors(); }
+    if (model && onFrame) {
+      const t = (now - t0) / 1000;
+      fixtures.heads.active = false;          // an effect sets this when it drives the heads itself
+      onFrame(t, dt, colors, fixtures.heads);
+      pushColors(t);
+    }
     controls.update();
     composer ? composer.render() : renderer.render(scene, camera);
   }
@@ -196,6 +201,8 @@ export function createViewer(container, opts = {}) {
     get fixtureCount() { return fixtures.count; },
     get holesPerGlobe() { return fixtures.holesPerGlobe; },
     get beamDeg() { return fixtures.beamDeg; },
+    get heads() { return fixtures.heads; },
+    headLoad: h => fixtures.headLoad(h),
     get colors() { return colors; },
     dispose: () => { running = false; renderer.dispose(); },
   };

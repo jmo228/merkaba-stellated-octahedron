@@ -5,6 +5,7 @@
 ### Versions (git tags; run `git checkout <tag>` to go back to any of them)
 | Tag | What it is |
 |---|---|
+| v1.2 | Globe heads in the real design: DMX map (universes start at tie points), nodes and supplies per tie point, power, BOM |
 | v1.1-beta | Perforated RGBWUV hub globes on the visualizer (beams in fog); not yet in DMX map or power estimate |
 | v1.0 | First prototype: static website (6 pages, 3D visualizer), shared geometry/spec data, spec sheets, controller placeholder |
 
@@ -24,11 +25,59 @@
    ```
 
 ### To do next
-- Hub globe heads (14, RGBWUV): add to the DMX address map and power estimate; replan universes to start at the tie-point hubs; one supply and one 2-universe Art-Net/sACN node per tie point; separate globe sizes for tips and middle hubs.
 - Turn on GitHub Pages (steps above).
 - Confirm with the supplier: pixels per tube, watts per metre, XLR pinout, how the DMX address is set.
 - Choose the tube size (0.5 / 1 / 1.5 m), and measure the real ceiling height.
-- Start the stand-alone `controller/controller.py` (DMX output).
+- Choose the globe head: real channel layout, wattage, mass and DMX connectors. Then update `globeHead` in `merkaba.json` (placeholders now: 8 ch, 15 W, 0.5 kg).
+- If the 1.5 m tubes are chosen: 8 universes need more than 3 × 2 node outputs. Use 4-output nodes.
+- Start the stand-alone `controller/controller.py` (DMX output, including the heads' channels).
+
+---
+
+## VERSION 1.2 (2026-11-08): globe heads in the real design
+
+**What's in it**
+- `merkaba.json`:
+  - New `globeHead` section: 14 RGBWUV heads, channel list (8 ch: dimmer, R, G, B, W, UV, strobe, macro), 15 W, 0.5 kg each, globe 160 mm on tips and 200 mm on middle hubs, 32 holes of 12 mm. Channels, watts and mass are marked as assumptions.
+  - `dmx.headPlacement`: `"inChain"` (default) or `"ownUniverse"`.
+  - `dmx.nodes`: one Art-Net/sACN node per tie point, 2 outputs.
+  - `power`: one 24 V supply per tie point, plus the 12 AWG feed down each winch line (6 m).
+  - Removed the old tip `virtualPairs`.
+- New DMX planner (`docs/js/model.js`):
+  - Every universe starts at a tie-point (middle) hub and runs outward to a tip.
+  - Each head is patched in where the chain passes its hub. A tip's head is last in its run, before a jumper or the terminator.
+  - A tube or head is never split across universes.
+  - It tries 4000 seeded layouts, so the result is the same every time. It keeps the one with the fewest node outputs over capacity, then supplies over 80%, then universes, jumpers, busiest supply and jumper length.
+- **Wiring & DMX page:**
+  - Address map with heads, the start hub and node output for each universe, and jumpers with lengths to buy.
+  - Nodes and supplies per tie point: load, amps, % of rating and the 12 AWG feed's voltage drop.
+  - Head channel layout.
+  - The diagram marks universe starts and head dots.
+  - Warnings when node outputs run short or a supply is above 80%.
+- **Specs page:** heads in the power budget (tubes + heads, 3 supplies, busiest supply), a Globe heads section, node outputs and jumpers per size, and weight including heads.
+- **Visualizer:**
+  - Separate globe sizes for tips and middle hubs.
+  - Heads run on a DMX frame in the channel layout from `merkaba.json`: the panel writes it and the globes are drawn from it.
+  - The Address test now steps through the heads as well as the tubes.
+  - The power card includes the heads and shows the busiest supply.
+- **BOM:** 14 heads, 8 + 6 globes, head patch leads, 3 nodes (instead of 1 interface), Ethernet and a switch, 3 supplies, 12 AWG feed cable, more fuses and terminators, and longer jumpers (unpriced).
+- Fix: heavy fog no longer turns the whole visualizer white. Beam haze now scales with the total number of beams.
+- `controller.py` summary uses the new head channels.
+
+**Key numbers (heads in the chain)**
+| Tubes | Universes | Node outputs (of 6) | Jumpers | Full white | Busiest supply |
+|---|---:|---:|---:|---:|---:|
+| 0.5 m | 3 | 3 | 5 | 480 W | 6.9 A (34%) |
+| 1 m | 5 | 5 | 3 | 750 W | 11.9 A (59%) |
+| 1.5 m | 8 | **8: 2 short** | 4 | 1020 W | 15.3 A (77%) |
+
+With `ownUniverse` there is one more universe in each case (4 / 6 / 9). Feed drop on 6 m of 12 AWG stays under 1 V (about 4%) for every size.
+
+**Tested**
+- Node: the planner places all 36 tubes and 14 heads once each for every size and both head options. Every universe starts at a middle hub, ends at a tip, and stays at or under 512 channels.
+- Local preview, all six pages, both head options: no console errors.
+- Visualizer: globes on all 14 hubs; holes show as hot spots; Fog 0 to 100% brightens the beams without washing out; White and UV work; tip and middle globe sizes rebuild; changing tube size rebuilds; the Address test lights each head in turn (for example `U1 @461–468 · head TA2`).
+- Wiring: 50 address rows (36 tubes + 14 heads) and the short-output warning for 1.5 m.
 
 ---
 

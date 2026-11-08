@@ -1,6 +1,8 @@
 // Demo effects. Each effect fills `out` (RGB 0..1, one triple per pixel in DMX order).
 // Pixel order = universe/address order, so a "chase" here runs the way data flows
-// through the real daisy chain.
+// through the real daisy chain. An effect can also drive the globe heads directly by
+// writing their DMX values (`heads.values`, layout from merkaba.json) and setting
+// `heads.active`; otherwise the heads follow the Hub globes panel.
 
 export function hsv(h, s, v) {
   h = ((h % 1) + 1) % 1;
@@ -74,7 +76,8 @@ export const EFFECTS = {
   },
   address: {
     label: 'Address test',
-    run({ t, speed, px, out, model }) {
+    // steps through every tube and globe head in DMX order (universe, then address)
+    run({ t, speed, px, out, model, heads }) {
       const step = Math.floor(t * speed * 1.5) % model.chain.length;
       const c = model.chain[step];
       for (let i = 0; i < px.length; i++) {
@@ -82,7 +85,20 @@ export const EFFECTS = {
         if (p.order === step) put(out, i, hsv(p.local / (model.variant.pixelsPerTube * 1.4), 1, 1));
         else put(out, i, [0.06, 0.06, 0.08]);
       }
-      return `U${c.universe} @${c.startAddress} · ${model.tubes[c.tubeIndex].id} (${c.from}→${c.to})`;
+      if (heads && heads.count) {
+        heads.active = true;
+        heads.values.fill(0);
+        if (c.kind === 'head') {
+          const base = model.headByHub[c.hub].index * heads.channels.length;
+          const col = hsv(t * 0.5, 0.8, 1);
+          const set = (name, v) => { if (name in heads.ch) heads.values[base + heads.ch[name]] = v; };
+          set('dimmer', 1); set('red', col[0]); set('green', col[1]); set('blue', col[2]);
+        }
+      }
+      const where = `U${c.universe} @${c.startAddress}–${c.endAddress}`;
+      return c.kind === 'head'
+        ? `${where} · head ${c.hub} (${c.channels} ch)`
+        : `${where} · ${model.tubes[c.tubeIndex].id} (${c.from}→${c.to})`;
     },
   },
 };

@@ -11,9 +11,10 @@ and hangs from **three motorised winches** so it can rise, fall and tilt.
 | Tubes | 36 in the sculpture, 40 ordered (4 spares). HTD-T40-20IC-5050RGB style, 24 V, 5-pin DMX XLR in/out on 150 mm leads |
 | Sizes | 0.5 m, 1 m or 1.5 m tubes (one size for the whole build, not chosen yet) |
 | Hubs | 8 tips (3 tubes each) + 6 middle hubs (8 tubes each) |
-| Power | 24 V 20 A supply |
+| Globes | 14 perforated frosted globes (160 mm tips, 200 mm middle hubs), each lit by an RGBWUV DMX head |
+| Power | 3 × 24 V 20 A supplies, one per winch tie point |
 | Rigging | 3 winches, each on a two-leg bridle to a pair of middle hubs |
-| Control | DMX from a PC app (stand-alone Merkaba version of `controller.py`) |
+| Control | DMX from a PC app (stand-alone Merkaba version of `controller.py`), through one Art-Net/sACN node per tie point |
 
 ## Repository layout
 
@@ -68,10 +69,10 @@ Keep pull requests small and say what you changed and why. If you change a numbe
 
 ## Estimates still to confirm
 
-Pixels per tube, watts per metre, weights and the ceiling height are estimates. They are listed under
-`assumptions` in `merkaba.json` and on the Specs page. At the estimated 15 W/m, the 1 m and 1.5 m
-tubes draw more at full white than one 24 V 20 A supply can deliver, so the controller needs a
-brightness cap or the build needs a second supply.
+Pixels per tube, watts per metre, weights, the ceiling height and the globe head's channels and
+wattage are estimates. They are listed under `assumptions` in `merkaba.json` and on the Specs page.
+With one 24 V 20 A supply per tie point, every tube size stays under 80% per supply at full white.
+The 1.5 m tubes need 8 DMX universes, more than three 2-output nodes provide.
 
 ## License
 
