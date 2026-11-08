@@ -92,8 +92,10 @@ function holeDirections(count, ports, clearRad) {
   return out.slice(0, Math.min(count, MAX_HOLES));
 }
 
-// fog/haze in the room: with none the beams are barely visible, in thick fog they glow
-const fogToHaze = f => 0.02 + 0.9 * Math.pow(f, 1.3);
+// fog/haze in the room: with none the beams are barely visible, in thick fog they glow.
+// Hundreds of additive beams overlap near the centre, so the per-beam level is scaled down
+// as the total beam count rises; without that, heavy fog turned the whole view white.
+const fogToHaze = (f, beams) => (0.012 + 0.45 * Math.pow(f, 1.4)) * Math.min(1, Math.sqrt(120 / Math.max(1, beams)));
 // UV shows as a deep violet in fog; white adds equally to R, G and B
 const UV_TINT = [0.32, 0.08, 1.0];
 
@@ -154,7 +156,7 @@ export function createFixtures(parent) {
 
       const beams = new THREE.InstancedMesh(beamGeo, new THREE.ShaderMaterial({
         vertexShader: beamVS, fragmentShader: beamFS,
-        uniforms: { uColor: { value: new THREE.Color(0, 0, 0) }, uIntensity: { value: fogToHaze(settings.fog) } },
+        uniforms: { uColor: { value: new THREE.Color(0, 0, 0) }, uIntensity: { value: 0 } },
         transparent: true, depthWrite: false, side: THREE.DoubleSide,
         blending: THREE.AdditiveBlending, toneMapped: false,
       }), Math.max(1, dirs.length));
@@ -175,6 +177,8 @@ export function createFixtures(parent) {
   // beam length/intensity change without rebuilding the holes
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), pos = new THREE.Vector3(), scl = new THREE.Vector3();
   function applyBeams() {
+    const totalBeams = items.reduce((s, it) => s + it.holes, 0);
+    const haze = fogToHaze(settings.fog, totalBeams);
     for (const it of items) {
       const { centre, dirs, R, holeAng } = it.beams.userData;
       const holeR = R * Math.tan(holeAng);
@@ -191,7 +195,7 @@ export function createFixtures(parent) {
       it.beams.userData.radii = [holeR, farR];
       it.beams.geometry = beamGeometry(holeR, farR);
       it.beams.visible = settings.beams && it.holes > 0;
-      it.beams.material.uniforms.uIntensity.value = fogToHaze(settings.fog);
+      it.beams.material.uniforms.uIntensity.value = haze;
       it.globe.visible = settings.globes;
     }
   }
