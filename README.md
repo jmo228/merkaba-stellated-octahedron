@@ -4,7 +4,7 @@ A suspended Merkaba light sculpture: two interlocked tetrahedra plus the inner o
 joins their edge midpoints (a *stella octangula*). It is built from **36 DMX512 pixel tubes** and **14 hubs**,
 and hangs from **three motorised winches** so it can rise, fall and tilt.
 
-**Website:** `https://<your-github-username>.github.io/merkaba-stellated-octahedron/` (once GitHub Pages is on)
+**Website:** <https://jmo228.github.io/merkaba-stellated-octahedron/> (once GitHub Pages is on)
 
 | | |
 |---|---|
